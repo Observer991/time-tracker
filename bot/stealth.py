@@ -12,6 +12,7 @@
 8. 현실적인 뷰포트 / User-Agent / 언어 설정
 """
 import asyncio
+import json
 import random
 from typing import Optional
 
@@ -106,6 +107,29 @@ def random_context_options() -> dict:
             "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
         },
     }
+
+
+def load_or_create_profile(path: str = "profile.json") -> dict:
+    """브라우저 지문(UA/뷰포트)을 파일에 고정해 실행마다 동일하게 유지.
+
+    실행할 때마다 UA·해상도가 바뀌면 같은 계정이 매번 다른 기기로 접속하는
+    꼴이라 오히려 더 눈에 띈다. 실제 사용자는 브라우저가 하나다.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            opts = json.load(f)
+        if opts.get("user_agent") and opts.get("viewport"):
+            return opts
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+
+    opts = random_context_options()
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(opts, f, ensure_ascii=False, indent=1)
+    except OSError:
+        pass
+    return opts
 
 
 async def setup_stealth_context(context: BrowserContext) -> None:

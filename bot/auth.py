@@ -7,7 +7,41 @@ from bot.stealth import rand_sleep, page_think_delay
 
 logger = logging.getLogger(__name__)
 
-LOGIN_URL = "https://www.gunpouc.or.kr/fmcs/160"
+LOGIN_URL   = "https://www.gunpouc.or.kr/fmcs/160"
+HISTORY_URL = "https://www.gunpouc.or.kr/fmcs/170"   # 대관내역 (로그인 필요)
+
+
+async def is_logged_in(page: Page) -> bool:
+    """로그인이 필요한 페이지에 접근해 현재 세션이 살아있는지 확인.
+
+    이 사이트는 비로그인 상태로 보호된 메뉴에 들어가면 URL 을 바꾸지 않고
+    alert 만 띄운다. 따라서 URL·로그인폼 유무로는 판별할 수 없고,
+    헤더의 '로그아웃' 링크 존재로 확인해야 한다.
+    """
+    try:
+        await page.goto(HISTORY_URL, wait_until="domcontentloaded", timeout=20000)
+        await page.wait_for_timeout(1500)
+    except Exception:
+        return False
+    if "/fmcs/160" in page.url:                      # 로그인 페이지로 리다이렉트
+        return False
+    return await page.evaluate(
+        """() => Array.from(document.querySelectorAll('a'))
+                 .some(a => (a.textContent || '').includes('로그아웃'))"""
+    )
+
+
+async def ensure_login(page: Page, config: Dict[str, Any]) -> bool:
+    """세션이 살아있으면 재사용하고, 아니면 로그인.
+
+    영속 프로필을 쓰므로 대개 재로그인이 필요 없다. 실행할 때마다 로그인하는
+    것은 불필요한 요청이기도 하고 자동화 티가 나는 패턴이기도 하다.
+    """
+    if await is_logged_in(page):
+        logger.info("기존 세션 재사용 — 로그인 생략")
+        return True
+    logger.info("세션 없음 — 로그인 진행")
+    return await login(page, config)
 
 
 async def login(page: Page, config: Dict[str, Any]) -> bool:

@@ -4,3 +4,8 @@ __pycache__/
 *.log
 screenshots/
 .env
+applied.json
+.venv/
+.chrome-profile/
+profile.json
+session.json

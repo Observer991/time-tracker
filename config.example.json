@@ -4,19 +4,33 @@
     "password": "비밀번호"
   },
   "target": {
-    "center": "센터명 (예: 군포시청소년수련관)",
-    "facility": "시설명 (예: 테니스장)",
-    "location": "장소명 (예: 테니스코트 1면)",
-    "dates": ["2026-10-01", "2026-10-08"],
-    "time_slots": ["09:00", "10:00", "11:00"],
-    "purpose": "체육경기"
+    "center_value": "GUNPO02",
+    "part_value": "14",
+    "place_values": [
+      {"label": "1코트", "value": "61"},
+      {"label": "2코트", "value": "62"},
+      {"label": "3코트", "value": "63"}
+    ],
+    "specific_dates": ["20261003", "20261004"],
+    "start_times": ["1800", "2000"],
+    "rent_type": "1001"
+  },
+  "form": {
+    "team_nm": "대표자명",
+    "title": "테니스",
+    "purpose": "테니스",
+    "users": "4",
+    "mobile_tel": ""
   },
   "schedule": {
-    "open_datetime": "2026-09-15 09:00:00",
+    "open_datetime": "2026-10-01 10:00:00",
     "advance_seconds": 30
   },
   "browser": {
     "headless": false,
-    "slow_mo": 50
-  }
+    "user_data_dir": ".chrome-profile",
+    "session_file": "session.json",
+    "profile_file": "profile.json"
+  },
+  "state_file": "applied.json"
 }
