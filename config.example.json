@@ -1,0 +1,22 @@
+{
+  "credentials": {
+    "id": "아이디",
+    "password": "비밀번호"
+  },
+  "target": {
+    "center": "센터명 (예: 군포시청소년수련관)",
+    "facility": "시설명 (예: 테니스장)",
+    "location": "장소명 (예: 테니스코트 1면)",
+    "dates": ["2026-10-01", "2026-10-08"],
+    "time_slots": ["09:00", "10:00", "11:00"],
+    "purpose": "체육경기"
+  },
+  "schedule": {
+    "open_datetime": "2026-09-15 09:00:00",
+    "advance_seconds": 30
+  },
+  "browser": {
+    "headless": false,
+    "slow_mo": 50
+  }
+}
