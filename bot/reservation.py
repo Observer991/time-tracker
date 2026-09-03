@@ -639,7 +639,6 @@ async def reserve(page: Page, config: Dict[str, Any]) -> bool:
 
                 logger.info(f"  슬롯 {slot_tag} ({parts[1]}) 신청 시도")
                 dialogs = getattr(page, "_dialog_messages", [])
-                mark    = len(dialogs)
 
                 opened, detail = await _open_form_resilient(
                     page, config, slot, rent_type, date_str, dialogs,
