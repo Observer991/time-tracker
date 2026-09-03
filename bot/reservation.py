@@ -41,6 +41,9 @@ SUCCESS_KWS = [
     "신청되었습니다", "접수되었습니다", "완료되었습니다",
     "신청이 완료", "예약이 완료", "신청 완료",
 ]
+# 실행 도중 세션이 끊기면 이 문구의 alert 가 뜬다. 재로그인 후 재시도해야 한다.
+LOGIN_REQUIRED_KWS = ["로그인을 하셔야만", "로그인이 필요"]
+
 # 사용일 1일당 신청 가능 건수 상한에 걸렸을 때의 메시지.
 # 이 경우 같은 날짜는 다른 코트로도 신청할 수 없으므로 더 시도하지 않는다.
 LIMIT_KWS = ["최대 예약 제한 횟수", "제한 횟수"]
@@ -503,6 +506,35 @@ async def _reset_to_date(page: Page, center: str, part: str, place: str,
     return await _click_date(page, date_id)
 
 
+async def _open_form_resilient(page: Page, config: Dict[str, Any], slot: Dict, rent_type: str,
+                               date_str: str, dialogs: List[str], center: str, part: str,
+                               place_value: str, t_year: int, t_month: int,
+                               date_id: str) -> Tuple[bool, str]:
+    """폼 진입을 시도하고, 세션이 끊겼으면 재로그인 후 한 번 더 시도.
+
+    장시간 실행 중 서버가 세션을 끊으면 '로그인을 하셔야만 이용가능합니다' alert 만
+    뜨고 이후 모든 신청이 조용히 실패한다. 감지해서 다시 로그인해야 한다.
+    """
+    from bot.auth import login          # 순환 import 방지를 위해 지연 import
+
+    for attempt in (1, 2):
+        mark = len(dialogs)
+        if await _open_apply_form(page, slot, rent_type, expect_date=date_str):
+            return True, ""
+
+        detail = dialogs[mark] if len(dialogs) > mark else "폼 진입 실패"
+        if attempt == 2 or not any(kw in detail for kw in LOGIN_REQUIRED_KWS):
+            return False, detail
+
+        logger.warning("  세션 만료 감지 — 재로그인 후 재시도합니다.")
+        if not await login(page, config):
+            return False, "세션 만료 후 재로그인 실패"
+        if not await _reset_to_date(page, center, part, place_value, t_year, t_month, date_id):
+            return False, "재로그인 후 날짜 화면 복귀 실패"
+
+    return False, "재시도 후에도 폼 진입 실패"
+
+
 # ── 메인 ───────────────────────────────────────────────────────────────────────
 
 async def reserve(page: Page, config: Dict[str, Any]) -> bool:
@@ -609,9 +641,11 @@ async def reserve(page: Page, config: Dict[str, Any]) -> bool:
                 dialogs = getattr(page, "_dialog_messages", [])
                 mark    = len(dialogs)
 
-                if not await _open_apply_form(page, slot, rent_type, expect_date=date_str):
+                opened, detail = await _open_form_resilient(
+                    page, config, slot, rent_type, date_str, dialogs,
+                    center, part, place_value, t_year, t_month, date_id)
+                if not opened:
                     await _save_screenshot(page, f"error_form_{place_value}_{date_str}_{slot_tag}")
-                    detail = dialogs[mark] if len(dialogs) > mark else "폼 진입 실패"
                     results.append({"court": place_label, "date": date_str, "slot": slot_tag,
                                     "status": "fail", "detail": detail})
 
